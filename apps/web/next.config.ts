@@ -54,4 +54,8 @@ const nextConfig: NextConfig = {
 };
 
 // BotID is a Vercel-only product; it has no effect on Netlify and is removed here.
-export default withContentCollections(nextConfig);
+// The cast guards against the workspace and the app each resolving their own copy of
+// Next's types, which makes the wrapper's parameter type nominally different.
+export default withContentCollections(
+	nextConfig as Parameters<typeof withContentCollections>[0],
+);
