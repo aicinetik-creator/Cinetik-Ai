@@ -41,3 +41,26 @@ export type ShortcutKey = ModifierBasedShortcutKey | SingleCharacterShortcutKey;
 export type KeybindingConfig = {
 	[key in ShortcutKey]?: TActionWithOptionalArgs;
 };
+
+const MODIFIER_KEYS: ReadonlySet<string> = new Set([
+	"ctrl",
+	"alt",
+	"shift",
+	"ctrl+shift",
+	"alt+shift",
+	"ctrl+alt",
+	"ctrl+alt+shift",
+]);
+
+/**
+ * Type guard for a persisted keybinding string: either a bare key ("space") or
+ * "<modifiers>+<key>" ("ctrl+shift+a"). Modifiers are matched against the
+ * ModifierKeys union, splitting on the last "+" so multi-modifier combos work.
+ */
+export function isShortcutKey(value: string): value is ShortcutKey {
+	const separatorIndex = value.lastIndexOf("+");
+	if (separatorIndex === -1) return isKey(value);
+	const modifiers = value.slice(0, separatorIndex);
+	const key = value.slice(separatorIndex + 1);
+	return MODIFIER_KEYS.has(modifiers) && isKey(key);
+}

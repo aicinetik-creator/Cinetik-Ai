@@ -1,7 +1,8 @@
 name: build-check
 
-# Builds the Cinetik editor the same way Netlify does, so the result is readable
-# from the Actions log, and uploads the static export as an artifact.
+# Builds the Cinetik editor the way Netlify does, so the result is readable from
+# the Actions log. The type-check step lists every remaining TypeScript error at
+# once, and the static export is uploaded as an artifact.
 on:
   push:
     branches: [main]
@@ -23,6 +24,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Type check (report every error)
+        working-directory: apps/web
+        continue-on-error: true
+        run: npx --no-install tsc --noEmit --pretty false 2>&1 | head -300
 
       - name: Build static export
         working-directory: apps/web
