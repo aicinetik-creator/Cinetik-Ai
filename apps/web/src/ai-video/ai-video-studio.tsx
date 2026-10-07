@@ -149,8 +149,6 @@ export function AiVideoStudio() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [isOpen, close]);
 
-	if (!isOpen) return null;
-
 	const handleGenerateScript = async () => {
 		if (!currentBrief.brief) {
 			toast.error("Add a brief first", {
@@ -270,6 +268,10 @@ export function AiVideoStudio() {
 		(step === 1 && !!script) ||
 		(step === 2 && !!script) ||
 		(step === 3 && !!script);
+
+	// NOTE: every hook above must stay above this early return, otherwise opening
+	// the studio would render more hooks than the closed render and React would throw.
+	if (!isOpen) return null;
 
 	return (
 		<div className="bg-background text-foreground fixed inset-0 z-[200] flex h-[100dvh] w-full flex-col">
