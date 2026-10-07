@@ -70,12 +70,6 @@ export function Header() {
 								<HugeiconsIcon icon={Download01Icon} />
 								Download SVG
 							</ContextMenuItem>
-							<Link href="https://opencut.app/brand" target="_blank" rel="noopener noreferrer">
-								<ContextMenuItem>
-									<HugeiconsIcon icon={LinkSquare02Icon} />
-									Brand assets
-								</ContextMenuItem>
-							</Link>
 						</ContextMenuContent>
 					</ContextMenu>
 
