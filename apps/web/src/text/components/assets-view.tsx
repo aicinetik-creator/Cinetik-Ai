@@ -92,7 +92,7 @@ export function TextView() {
 	);
 }
 
-/** Renders the preset with its own styling so the card previews the result. */
+/** Renders the preset on a dark frame so the styling is visible in any theme. */
 function PresetCard({
 	preset,
 	onAdd,
@@ -109,29 +109,35 @@ function PresetCard({
 			type="button"
 			onClick={onAdd}
 			title={preset.description}
-			className="hover:border-foreground/40 flex h-[4.5rem] flex-col items-center justify-center gap-1 overflow-hidden rounded-md border p-2 transition-colors"
+			className="hover:border-foreground/40 flex flex-col gap-1 rounded-md border p-1.5 transition-colors"
 		>
-			<span
-				className="max-w-full truncate"
-				style={{
-					color: typeof params.color === "string" ? params.color : undefined,
-					fontSize: `${Math.min(Math.max(fontSize * 0.55, 9), 20)}px`,
-					fontWeight: params.fontWeight === "bold" ? 700 : 400,
-					fontStyle: params.fontStyle === "italic" ? "italic" : "normal",
-					letterSpacing:
-						typeof params.letterSpacing === "number"
-							? `${params.letterSpacing * 0.5}px`
+			{/* dark frame mimics the video canvas, so light preset colours stay visible */}
+			<span className="flex h-12 w-full items-center justify-center overflow-hidden rounded bg-black/85 px-1.5">
+				<span
+					className="max-w-full truncate"
+					style={{
+						color: typeof params.color === "string" ? params.color : undefined,
+						fontSize: `${Math.min(Math.max(fontSize * 0.5, 8), 18)}px`,
+						fontWeight: params.fontWeight === "bold" ? 700 : 400,
+						fontStyle: params.fontStyle === "italic" ? "italic" : "normal",
+						letterSpacing:
+							typeof params.letterSpacing === "number"
+								? `${params.letterSpacing * 0.5}px`
+								: undefined,
+						backgroundColor: backgroundEnabled
+							? (params["background.color"] as string | undefined)
 							: undefined,
-					backgroundColor: backgroundEnabled
-						? (params["background.color"] as string | undefined)
-						: undefined,
-					borderRadius: backgroundEnabled
-						? `${Math.min(Number(params["background.cornerRadius"] ?? 4), 12)}px`
-						: undefined,
-					padding: backgroundEnabled ? "2px 6px" : undefined,
-				}}
-			>
-				{preset.name}
+						borderRadius: backgroundEnabled
+							? `${Math.min(Number(params["background.cornerRadius"] ?? 4), 12)}px`
+							: undefined,
+						padding: backgroundEnabled ? "2px 6px" : undefined,
+					}}
+				>
+					{preset.name}
+				</span>
+			</span>
+			<span className="text-muted-foreground w-full truncate text-[0.65rem]">
+				{preset.description}
 			</span>
 		</button>
 	);

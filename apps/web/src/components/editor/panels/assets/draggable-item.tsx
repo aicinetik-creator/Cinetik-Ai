@@ -126,14 +126,12 @@ export function DraggableItem({
 						</AspectRatio>
 						{shouldShowLabel && (
 							<span
-								className="text-muted-foreground w-full truncate text-left text-[0.7rem]"
+								className="text-muted-foreground line-clamp-2 w-full text-left text-[0.7rem] leading-tight break-words"
 								title={name}
 							>
 								<span className="sr-only">{name}</span>
 								<span aria-hidden="true">
-									{name.length > 8
-										? `${name.slice(0, 16)}...${name.slice(-3)}`
-										: name}
+									{name}
 								</span>
 							</span>
 						)}
