@@ -43,7 +43,13 @@ export default function Editor() {
 	const openAiVideo = useAiVideoStore((state) => state.open);
 
 	useEffect(() => {
-		if (openAiOnLoad) openAiVideo();
+		if (!openAiOnLoad) return;
+		try {
+			window.sessionStorage.setItem("cinetik.ai-video.autoopen", "1");
+		} catch {
+			// sessionStorage unavailable - ignore
+		}
+		openAiVideo();
 	}, [openAiOnLoad, openAiVideo]);
 
 	return (

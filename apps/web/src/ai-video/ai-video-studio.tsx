@@ -109,6 +109,22 @@ export function AiVideoStudio() {
 		};
 	}, []);
 
+	// Opened from a link (/editor?ai=1)? The project load may rewrite the URL,
+	// so the intent is carried in sessionStorage and honoured on mount.
+	const autoOpenCheckedRef = useRef(false);
+	useEffect(() => {
+		if (autoOpenCheckedRef.current) return;
+		autoOpenCheckedRef.current = true;
+		try {
+			if (window.sessionStorage.getItem("cinetik.ai-video.autoopen") === "1") {
+				window.sessionStorage.removeItem("cinetik.ai-video.autoopen");
+				useAiVideoStore.getState().open();
+			}
+		} catch {
+			// sessionStorage unavailable - ignore
+		}
+	}, []);
+
 	const currentBrief = useMemo<AiBrief>(
 		() => ({ brief: briefText.trim(), language, format, durationSeconds: duration, style }),
 		[briefText, language, format, duration, style],
@@ -256,7 +272,7 @@ export function AiVideoStudio() {
 		(step === 3 && !!script);
 
 	return (
-		<div className="bg-background text-foreground fixed inset-0 z-[120] flex h-[100dvh] w-full flex-col">
+		<div className="bg-background text-foreground fixed inset-0 z-[200] flex h-[100dvh] w-full flex-col">
 			<div className="h-1 w-full" style={{ background: BRAND_GRADIENT }} />
 
 			<header className="flex items-center justify-between gap-3 border-b px-4 py-3">
