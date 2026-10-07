@@ -10,14 +10,12 @@ import { ThemeToggle } from "./theme-toggle";
 import {
 	Copy01Icon,
 	Download01Icon,
-	GithubIcon,
 	LinkSquare02Icon,
 	Menu02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@/utils/ui";
-import { DEFAULT_LOGO_URL, SITE_URL } from "@/site/brand";
-import { SOCIAL_LINKS } from "@/site/social";
+import { DEFAULT_LOGO_URL } from "@/site/brand";
 import {
 	ContextMenu,
 	ContextMenuContent,

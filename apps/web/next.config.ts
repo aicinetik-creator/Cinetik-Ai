@@ -8,7 +8,10 @@ const nextConfig: NextConfig = {
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: true,
-	output: "standalone",
+	// Netlify's Next.js runtime is an OpenNext adapter and packages the app itself.
+	// Combining an adapter with `output: "standalone"` crashes the Next 16 build
+	// (missing .next/next-server.js.nft.json), so it stays off unless explicitly asked for.
+	output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
 	images: {
 		remotePatterns: [
 			{
