@@ -1,24 +1,22 @@
 # Netlify configuration for the Cinetik editor.
-# The app is built as a static export (next.config.ts -> output: "export"),
-# so Netlify only has to run the build and serve the resulting files: no
-# serverless runtime and no Next.js server are involved.
+#
+# The app is a static export (next.config.ts -> output: "export"). Netlify
+# auto-installs its Next.js Runtime for any repo containing Next.js, and that
+# runtime requires the publish directory to be `.next` - it then serves the
+# exported files itself. Pointing `publish` at `out` makes the runtime fail the
+# build with "publish directory does not contain expected Next.js build output".
 [build]
   base = "apps/web"
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20.9.0"
   NPM_FLAGS = "--legacy-peer-deps"
 
-# The editor lives at /editor/<project-id>; a static export cannot have dynamic
-# routes, so the id is read on the client and these rewrites keep the URLs.
+# The editor lives at /editor/<project-id>. A static export has no dynamic
+# routes, so the id is read on the client and this rewrite keeps the URLs.
 [[redirects]]
   from = "/editor/*"
   to = "/editor"
-  status = 200
-
-[[redirects]]
-  from = "/"
-  to = "/projects"
   status = 200
