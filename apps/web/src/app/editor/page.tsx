@@ -15,10 +15,12 @@ import { Onboarding } from "@/components/editor/onboarding";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { usePanelStore } from "@/editor/panel-store";
 import { usePasteMedia } from "@/media/use-paste-media";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileEditorPanels } from "@/components/editor/mobile-editor-panels";
 import { useEditor } from "@/editor/use-editor";
+import { AiVideoStudio } from "@/ai-video/ai-video-studio";
+import { useAiVideoStore } from "@/ai-video/ai-video-store";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,12 @@ import {
 
 export default function Editor() {
 	const [projectId] = useState(readProjectIdFromUrl);
+	const [openAiOnLoad] = useState(readAiFlagFromUrl);
+	const openAiVideo = useAiVideoStore((state) => state.open);
+
+	useEffect(() => {
+		if (openAiOnLoad) openAiVideo();
+	}, [openAiOnLoad, openAiVideo]);
 
 	return (
 		<EditorProvider projectId={projectId}>
@@ -50,6 +58,7 @@ export default function Editor() {
 				<Onboarding />
 				<MigrationDialog />
 				<ChangelogNotification />
+				<AiVideoStudio />
 			</div>
 		</EditorProvider>
 	);
@@ -224,6 +233,15 @@ function EditorLayout() {
 			</ResizablePanel>
 		</ResizablePanelGroup>
 	);
+}
+
+/**
+ * The AI Video studio can be opened straight from a link (/editor?ai=1), so the
+ * landing page's "Try Now" button can drop a new user right into it.
+ */
+function readAiFlagFromUrl(): boolean {
+	if (typeof window === "undefined") return false;
+	return new URLSearchParams(window.location.search).get("ai") === "1";
 }
 
 /**

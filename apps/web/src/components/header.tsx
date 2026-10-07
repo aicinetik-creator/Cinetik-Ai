@@ -28,6 +28,7 @@ export function Header() {
 	const closeMenu = () => setIsMenuOpen(false);
 
 	const links = [
+		{ label: "AI Video", href: "/editor?ai=1" },
 		{ label: "cinetik.in", href: "https://cinetik.in" },
 	];
 

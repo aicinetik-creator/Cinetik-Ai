@@ -22,12 +22,16 @@ import { SOCIAL_LINKS } from "@/site/social";
 import { toast } from "sonner";
 import { useEditor } from "@/editor/use-editor";
 import { CommandIcon, Logout05Icon } from "@hugeicons/core-free-icons";
+import { Sparkles } from "lucide-react";
+import { useAiVideoStore } from "@/ai-video/ai-video-store";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "@/actions/components/shortcuts-dialog";
 import Image from "next/image";
 import { cn } from "@/utils/ui";
 
 export function EditorHeader() {
+	const openAiVideo = useAiVideoStore((state) => state.open);
+
 	return (
 		<header className="bg-background flex h-[3.4rem] items-center justify-between px-3 pt-0.5">
 			<div className="flex items-center gap-1">
@@ -35,6 +39,10 @@ export function EditorHeader() {
 				<EditableProjectName />
 			</div>
 			<nav className="flex items-center gap-2">
+				<Button variant="outline" size="sm" onClick={openAiVideo}>
+					<Sparkles className="size-3.5" />
+					<span className="hidden sm:inline">AI Video</span>
+				</Button>
 				<span className="hidden md:block">
 					<FeedbackPopover />
 				</span>
