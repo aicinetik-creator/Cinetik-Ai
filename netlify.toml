@@ -1,0 +1,14 @@
+# Netlify configuration for the Cinetik editor.
+# The Next.js app lives inside a monorepo, so Netlify must build from apps/web.
+[build]
+  base = "apps/web"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20.9.0"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Netlify's Next.js runtime (handles SSR, image optimisation, routing).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
