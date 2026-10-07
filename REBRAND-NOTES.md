@@ -118,3 +118,19 @@ legal requirement.
   rebranded.
 - This fork will drift from upstream OpenCut over time; merging upstream updates is
   manual work.
+
+## Build fix: npm install layout (this version)
+
+`next build` was failing with:
+
+```
+Module not found: Can't resolve ... (from @better-auth/drizzle-adapter/dist/schema-check-*.mjs)
+Import trace: src/app/api/auth/[...all]/route.ts -> src/auth/server.ts -> better-auth -> @better-auth/drizzle-adapter
+```
+
+Cause: the repo shipped `install-strategy="nested"` and `node-linker=isolated` in the root
+`.npmrc` (bun/pnpm-oriented settings). With npm's "nested" strategy there is no hoisting, so
+`drizzle-orm` (a direct dependency of apps/web) was unreachable from the adapter's nested
+location. Removed both settings so npm uses its default hoisted layout; `legacy-peer-deps`
+stays on. If you have an existing checkout, delete `node_modules` (root and `apps/web`) and
+reinstall before building.
