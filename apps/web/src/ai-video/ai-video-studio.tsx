@@ -37,10 +37,16 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useEditor } from "@/editor/use-editor";
-import { DEFAULT_IMAGE_MODEL, DEFAULT_TEXT_MODEL, aiVideoKeys } from "./api-key";
+import { aiVideoKeys } from "./api-key";
 import { useAiVideoStore } from "./ai-video-store";
 import { buildTimelineFromScenes } from "./build-timeline";
-import { generateSceneImage, generateScript } from "./gemini";
+import {
+	AI_PROVIDERS,
+	type AiProviderId,
+	generateSceneImage,
+	generateScript,
+	providerInfo,
+} from "./providers";
 import {
 	DURATION_TARGETS,
 	FORMATS,
@@ -100,6 +106,10 @@ export function AiVideoStudio() {
 	const [builtCount, setBuiltCount] = useState<number | null>(null);
 
 	const [keyOpen, setKeyOpen] = useState(false);
+	const [configVersion, setConfigVersion] = useState(0);
+
+	// Re-read the provider / key / model settings whenever the provider dialog saves.
+	const config = useMemo(() => aiVideoKeys.getConfig(), [configVersion]);
 
 	const objectUrlsRef = useRef<string[]>([]);
 	useEffect(() => {
@@ -160,8 +170,7 @@ export function AiVideoStudio() {
 		setStep(1);
 		const result = await generateScript({
 			brief: currentBrief,
-			apiKey: aiVideoKeys.getApiKey(),
-			textModel: aiVideoKeys.getTextModel(),
+			config: aiVideoKeys.getConfig(),
 		});
 		setScript(result.script);
 		setScriptSource(result.source);
@@ -180,19 +189,21 @@ export function AiVideoStudio() {
 			setIsImaging(true);
 			setImageProgress({ done: 0, total: targets.length });
 
-			const apiKey = aiVideoKeys.getApiKey();
-			const imageModel = aiVideoKeys.getImageModel();
+			const imageConfig = aiVideoKeys.getConfig();
 			let done = 0;
 			let usedDemo = false;
+			let firstWarning: string | undefined;
 
 			for (const scene of targets) {
 				const result = await generateSceneImage({
 					scene,
 					brief: currentBrief,
-					apiKey,
-					imageModel,
+					config: imageConfig,
 				});
-				if (result.source === "demo") usedDemo = true;
+				if (result.source === "demo") {
+					usedDemo = true;
+					if (!firstWarning && result.warning) firstWarning = result.warning;
+				}
 				const url = URL.createObjectURL(result.blob);
 				objectUrlsRef.current.push(url);
 				setScript((prev) =>
@@ -218,9 +229,11 @@ export function AiVideoStudio() {
 			}
 
 			setIsImaging(false);
-			if (usedDemo && apiKey) {
+			if (usedDemo && imageConfig.apiKey) {
 				toast.warning("Some frames used placeholders", {
-					description: "The image model could not be reached for every scene.",
+					description:
+						firstWarning ??
+						"The image model could not be reached for every scene.",
 				});
 			}
 		},
@@ -288,7 +301,10 @@ export function AiVideoStudio() {
 					<div className="min-w-0">
 						<div className="flex items-center gap-2">
 							<span className="text-sm font-semibold tracking-wide">AI VIDEO</span>
-							{scriptSource === "demo" && (
+							<Badge variant="secondary" className="text-[10px]">
+								{providerInfo(config.provider).label}
+							</Badge>
+							{!config.apiKey && (
 								<Badge variant="secondary" className="text-[10px]">
 									DEMO MODE
 								</Badge>
@@ -304,7 +320,9 @@ export function AiVideoStudio() {
 					<Button variant="outline" size="sm" onClick={() => setKeyOpen(true)}>
 						<KeyRound className="size-3.5" />
 						<span className="hidden sm:inline">
-							{aiVideoKeys.getApiKey() ? "API key set" : "Add API key"}
+							{config.apiKey
+								? `${providerInfo(config.provider).label} key set`
+								: "Add API key"}
 						</span>
 					</Button>
 					<Button variant="ghost" size="icon" onClick={close} aria-label="Close AI Video">
@@ -436,7 +454,11 @@ export function AiVideoStudio() {
 				</div>
 			</footer>
 
-			<KeyDialog open={keyOpen} onOpenChange={setKeyOpen} />
+			<ProviderDialog
+				open={keyOpen}
+				onOpenChange={setKeyOpen}
+				onSaved={() => setConfigVersion((version) => version + 1)}
+			/>
 		</div>
 	);
 }
@@ -1011,72 +1033,152 @@ function TimelineStep({
 	);
 }
 
-function KeyDialog({
+function ProviderDialog({
 	open,
 	onOpenChange,
+	onSaved,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onSaved: () => void;
 }) {
-	const [key, setKey] = useState("");
-	const [textModel, setTextModel] = useState(DEFAULT_TEXT_MODEL);
-	const [imageModel, setImageModel] = useState(DEFAULT_IMAGE_MODEL);
+	const [provider, setProvider] = useState<AiProviderId>("openrouter");
+
+	const [orKey, setOrKey] = useState("");
+	const [orTextModel, setOrTextModel] = useState("");
+	const [orImageModel, setOrImageModel] = useState("");
+
+	const [geminiKey, setGeminiKey] = useState("");
+	const [geminiTextModel, setGeminiTextModel] = useState("");
+	const [geminiImageModel, setGeminiImageModel] = useState("");
 
 	useEffect(() => {
 		if (!open) return;
-		setKey(aiVideoKeys.getApiKey());
-		setTextModel(aiVideoKeys.getTextModel());
-		setImageModel(aiVideoKeys.getImageModel());
+		setProvider(aiVideoKeys.getProvider());
+		setOrKey(aiVideoKeys.getOpenRouterKey());
+		setOrTextModel(aiVideoKeys.getOpenRouterTextModel());
+		setOrImageModel(aiVideoKeys.getOpenRouterImageModel());
+		setGeminiKey(aiVideoKeys.getGeminiKey());
+		setGeminiTextModel(aiVideoKeys.getGeminiTextModel());
+		setGeminiImageModel(aiVideoKeys.getGeminiImageModel());
 	}, [open]);
 
+	const info = providerInfo(provider);
+	const isOpenRouter = provider === "openrouter";
+
 	const save = () => {
-		aiVideoKeys.setApiKey(key);
-		aiVideoKeys.setTextModel(textModel);
-		aiVideoKeys.setImageModel(imageModel);
-		toast.success(key ? "API key saved" : "Cleared — using demo mode");
+		aiVideoKeys.setProvider(provider);
+		aiVideoKeys.setOpenRouterKey(orKey);
+		aiVideoKeys.setOpenRouterTextModel(orTextModel);
+		aiVideoKeys.setOpenRouterImageModel(orImageModel);
+		aiVideoKeys.setGeminiKey(geminiKey);
+		aiVideoKeys.setGeminiTextModel(geminiTextModel);
+		aiVideoKeys.setGeminiImageModel(geminiImageModel);
+		const key = isOpenRouter ? orKey.trim() : geminiKey.trim();
+		toast.success(
+			key ? `${info.label} saved` : `Cleared - ${info.label} runs in demo mode`,
+		);
+		onSaved();
 		onOpenChange(false);
 	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent>
+			<DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-[520px]">
 				<DialogHeader>
-					<DialogTitle>Gemini API key</DialogTitle>
+					<DialogTitle>AI provider</DialogTitle>
 					<DialogDescription>
-						Paste a Google AI Studio key to write real scripts and generate real scene
-						frames. Without a key, Cinetik runs in demo mode with a sample script and
-						placeholder frames.
+						Choose who writes your scripts and generates the scene frames. Your
+						key is stored only in this browser and sent straight to the provider -
+						it is never sent to Cinetik&apos;s servers.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4 py-2">
-					<Field label="API key">
+					<div className="flex flex-col gap-2">
+						<SectionLabel>Provider</SectionLabel>
+						<div className="flex flex-wrap gap-2">
+							{AI_PROVIDERS.map((item) => (
+								<Chip
+									key={item.id}
+									active={item.id === provider}
+									onClick={() => setProvider(item.id)}
+								>
+									{item.label}
+								</Chip>
+							))}
+						</div>
+						<p className="text-muted-foreground text-[11px]">{info.keyHelp}</p>
+					</div>
+
+					<Field label={isOpenRouter ? "OpenRouter API key" : "Gemini API key"}>
 						<Input
 							type="password"
-							value={key}
-							onChange={(event) => setKey(event.target.value)}
-							placeholder="AIza…"
+							value={isOpenRouter ? orKey : geminiKey}
+							onChange={(event) =>
+								isOpenRouter
+									? setOrKey(event.target.value)
+									: setGeminiKey(event.target.value)
+							}
+							placeholder={info.keyPlaceholder}
 							autoComplete="off"
 						/>
 					</Field>
-					<Field label="Text model">
+
+					<Field label="Text model (writes the script)">
 						<Input
-							value={textModel}
-							onChange={(event) => setTextModel(event.target.value)}
-							placeholder={DEFAULT_TEXT_MODEL}
+							value={isOpenRouter ? orTextModel : geminiTextModel}
+							onChange={(event) =>
+								isOpenRouter
+									? setOrTextModel(event.target.value)
+									: setGeminiTextModel(event.target.value)
+							}
+							placeholder={info.textModelHint}
 						/>
 					</Field>
-					<Field label="Image model">
+
+					{isOpenRouter && info.freeTextModels.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-muted-foreground text-[11px]">
+								Free models (cost nothing):
+							</span>
+							<div className="flex flex-wrap gap-2">
+								{info.freeTextModels.map((model) => (
+									<button
+										key={model}
+										type="button"
+										onClick={() => setOrTextModel(model)}
+										className={`rounded-md border px-2 py-1 text-[11px] ${
+											orTextModel === model
+												? "border-transparent text-white"
+												: "border-border text-muted-foreground hover:bg-accent"
+										}`}
+										style={
+											orTextModel === model
+												? { background: BRAND_GRADIENT }
+												: undefined
+										}
+									>
+										{model.replace(":free", "")}
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
+					<Field label="Image model (generates scene frames)">
 						<Input
-							value={imageModel}
-							onChange={(event) => setImageModel(event.target.value)}
-							placeholder={DEFAULT_IMAGE_MODEL}
+							value={isOpenRouter ? orImageModel : geminiImageModel}
+							onChange={(event) =>
+								isOpenRouter
+									? setOrImageModel(event.target.value)
+									: setGeminiImageModel(event.target.value)
+							}
+							placeholder={info.imageModelHint}
 						/>
 					</Field>
-					<p className="text-muted-foreground text-[11px]">
-						Your key is stored only in this browser and sent straight to Google&apos;s API.
-						It is never sent to Cinetik&apos;s servers.
-					</p>
+
+					<p className="text-muted-foreground text-[11px]">{info.imageNote}</p>
 				</div>
 
 				<DialogFooter>
