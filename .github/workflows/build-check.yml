@@ -1,0 +1,41 @@
+name: build-check
+
+# Builds the Cinetik editor the same way Netlify does, so the result is readable
+# from the Actions log, and uploads the static export as an artifact.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SITE_URL: https://edit.cinetik.in
+      NEXT_PUBLIC_MARBLE_API_URL: https://api.marblecms.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build static export
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Show build output
+        run: |
+          echo "--- apps/web/out ---"
+          ls -la apps/web/out | head -40 || true
+
+      - name: Upload static site
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-site
+          path: apps/web/out
+          if-no-files-found: warn
