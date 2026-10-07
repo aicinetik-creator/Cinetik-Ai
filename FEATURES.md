@@ -44,6 +44,32 @@ server, so there is no shared key to leak. The panel explains this and links to 
 free key page. Importing your own audio and video files needs no key at all and works
 entirely on the device.
 
+## AI Video — brief to timeline
+
+Describe a video in plain language (any of 22 Indian languages) and Cinetik writes the
+script, plans the shots, generates a frame per scene, and lays the whole thing onto the
+timeline as normal, editable clips.
+
+Five steps: **Brief, Script, Scenes, Audio, Timeline.**
+
+- **Script** — 3-6 scenes, each with a narration line, a visual description, a camera
+  angle, a shooting tip and a duration. Written by Google Gemini (`gemini-2.5-flash`).
+- **Scenes** — one generated frame per scene (`gemini-2.5-flash-image`).
+- **Audio** — a voiceover preview using the browser's own voice, plus a hand-off to the
+  Sounds library for a music bed.
+- **Timeline** — each scene is imported as a media asset and inserted back-to-back as an
+  image clip, so the result is a normal project you can trim, style and export.
+
+Bring your own key: the Gemini API key is stored only in the browser and sent straight to
+Google. With no key the studio runs in **demo mode** — a sample script and branded
+placeholder frames — so the whole flow still works.
+
+Reached from the editor header's **AI Video** button, from `/editor?ai=1`, or from the
+landing page's **Try Now** button.
+
+Not yet real: AI voiceover is a preview only (baking it into an export needs a paid
+text-to-speech service), and a scene is a still frame rather than a moving AI clip.
+
 ## Platform
 
 - Static build (`output: "export"`), so it can be hosted anywhere.
