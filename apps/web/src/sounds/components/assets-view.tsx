@@ -24,6 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSoundSearch } from "@/sounds/use-sound-search";
 import { useSoundsStore } from "@/sounds/sounds-store";
+import { searchFreesound } from "@/sounds/freesound-client";
+import { FreesoundKeyPrompt } from "@/sounds/components/api-key-prompt";
 import type { SavedSound, SoundEffect } from "@/sounds/types";
 import { cn } from "@/utils/ui";
 import {
@@ -38,6 +40,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 export function SoundsView() {
 	return (
 		<div className="flex h-full flex-col">
+			<FreesoundKeyPrompt />
 			<Tabs defaultValue="sound-effects" className="flex h-full flex-col">
 				<div className="px-3 pt-4 pb-0">
 					<TabsList>
@@ -123,16 +126,14 @@ function SoundEffectsView() {
 					setError({ error: null });
 				}
 
-				const response = await fetch(
-					"/api/sounds/search?page_size=50&sort=downloads",
-				);
+				const data = await searchFreesound({
+					query: "",
+					page: 1,
+					pageSize: 50,
+					sort: "downloads",
+				});
 
 				if (!shouldIgnore) {
-					if (!response.ok) {
-						throw new Error(`Failed to fetch: ${response.status}`);
-					}
-
-					const data = await response.json();
 					setTopSoundEffects({ sounds: data.results });
 					setHasLoaded({ loaded: true });
 
