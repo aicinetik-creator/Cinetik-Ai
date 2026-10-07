@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 import { withContentCollections } from "@content-collections/next";
 
+// GitHub Pages serves a project site under /<repo-name>, so the export needs a base
+// path there. Netlify serves it at the root, so the default stays empty and the
+// Netlify build is unaffected.
+const basePath = process.env.NEXT_BASE_PATH ?? "";
+
 const nextConfig: NextConfig = {
+	...(basePath ? { basePath, assetPrefix: basePath } : {}),
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production",
 	},

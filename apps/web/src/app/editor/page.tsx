@@ -258,6 +258,10 @@ function readProjectIdFromUrl(): string {
 	if (typeof window === "undefined") return "";
 	const fromQuery = new URLSearchParams(window.location.search).get("id");
 	if (fromQuery) return fromQuery;
-	const segments = window.location.pathname.split("/").filter(Boolean);
+	// Strip the deploy base path, because GitHub Pages serves under /<repo-name>.
+	const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+	let pathname = window.location.pathname;
+	if (base && pathname.startsWith(base)) pathname = pathname.slice(base.length);
+	const segments = pathname.split("/").filter(Boolean);
 	return segments[0] === "editor" ? (segments[1] ?? "") : "";
 }
