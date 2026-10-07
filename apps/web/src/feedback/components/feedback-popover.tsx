@@ -61,18 +61,35 @@ function useFeedback() {
 		setIsSubmitting(true);
 
 		try {
-			const res = await fetch("/api/feedback", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(values),
-			});
+			// The editor ships as a static export, so the old /api/feedback route no
+			// longer exists and every submission failed. Post to the same form service
+			// the marketing site uses, so feedback actually reaches the team inbox.
+			const res = await fetch(
+				"https://formsubmit.co/ajax/cinetikaipvtltd@gmail.com",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+					body: JSON.stringify({
+						_subject: "Cinetik Editor feedback",
+						message: values.message,
+						page:
+							typeof window === "undefined" ? "" : window.location.href,
+					}),
+				},
+			);
 
 			if (!res.ok) {
-				const data = await res.json().catch(() => null);
-				throw new Error(data?.error ?? "Failed to submit");
+				throw new Error("Could not reach the feedback service");
 			}
 
-			const { entry } = await res.json();
+			const entry: FeedbackEntry = {
+				id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+				message: values.message,
+				createdAt: new Date().toISOString(),
+			};
 			const next = [entry, ...entries].slice(0, MAX_HISTORY);
 			setEntries(next);
 			writeHistory({ entries: next });
