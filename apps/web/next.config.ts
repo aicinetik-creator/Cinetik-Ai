@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
@@ -54,4 +53,5 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default withContentCollections(withBotId(nextConfig));
+// BotID is a Vercel-only product; it has no effect on Netlify and is removed here.
+export default withContentCollections(nextConfig);
