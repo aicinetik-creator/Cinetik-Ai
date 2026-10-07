@@ -32,6 +32,7 @@ export function scriptPrompt(brief: AiBrief): string {
 		`- Split the video into 3 to 6 scenes whose durations add up to about ${brief.durationSeconds} seconds.`,
 		"- For each scene give: a short title, the narration (voiceover) line, a vivid visual description of what the camera sees (good enough to be used as an image-generation prompt), the camera angle, and one practical shooting tip (best time to shoot, lighting, framing).",
 		"- Keep it realistic to film on a phone. No studio gear assumptions.",
+		"- Use straight double quotes, escape any quotes inside a string, and never leave a trailing comma.",
 		"- Return ONLY minified JSON. No markdown, no commentary.",
 		"",
 		"JSON shape:",
@@ -60,15 +61,120 @@ export function imagePrompt({
 	].join(" ");
 }
 
-export function parseScriptJson(text: string): Record<string, unknown> {
+function stripFences(text: string): string {
 	const cleaned = text
 		.replace(/^```(?:json)?/i, "")
 		.replace(/```$/i, "")
 		.trim();
 	const start = cleaned.indexOf("{");
 	const end = cleaned.lastIndexOf("}");
-	if (start === -1 || end === -1) throw new Error("Model did not return JSON");
-	return JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+	if (start === -1 || end === -1) return cleaned;
+	return cleaned.slice(start, end + 1);
+}
+
+function removeTrailingCommas(text: string): string {
+	return text.replace(/,\s*([}\]])/g, "$1");
+}
+
+function tryParse(text: string): Record<string, unknown> | null {
+	try {
+		const value = JSON.parse(text) as unknown;
+		return value && typeof value === "object"
+			? (value as Record<string, unknown>)
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+/** Pulls the first balanced {...} object that parses, starting at `from`. */
+function salvageObjects(text: string): Record<string, unknown>[] {
+	const found: Record<string, unknown>[] = [];
+	let depth = 0;
+	let objectStart = -1;
+	let inString = false;
+	let escaped = false;
+
+	for (let i = 0; i < text.length; i++) {
+		const ch = text[i];
+		if (inString) {
+			if (escaped) escaped = false;
+			else if (ch === "\\") escaped = true;
+			else if (ch === '"') inString = false;
+			continue;
+		}
+		if (ch === '"') {
+			inString = true;
+			continue;
+		}
+		if (ch === "{") {
+			if (depth === 0) objectStart = i;
+			depth++;
+			continue;
+		}
+		if (ch === "}") {
+			depth--;
+			if (depth === 0 && objectStart !== -1) {
+				const piece = text.slice(objectStart, i + 1);
+				const parsed =
+					tryParse(piece) ?? tryParse(removeTrailingCommas(piece));
+				if (parsed) found.push(parsed);
+				objectStart = -1;
+			}
+			if (depth < 0) depth = 0;
+		}
+	}
+	return found;
+}
+
+function firstString({
+	text,
+	key,
+}: {
+	text: string;
+	key: string;
+}): string {
+	const match = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+	if (!match) return "";
+	try {
+		return JSON.parse(`"${match[1]}"`) as string;
+	} catch {
+		return match[1];
+	}
+}
+
+/**
+ * Free models occasionally emit slightly malformed JSON. Rather than throwing the
+ * whole script away, try the strict parse, then a comma-repaired parse, then
+ * salvage whatever scene objects are individually valid.
+ */
+export function parseScriptJson(text: string): Record<string, unknown> {
+	const cleaned = stripFences(text);
+
+	const direct = tryParse(cleaned) ?? tryParse(removeTrailingCommas(cleaned));
+	if (direct && (Array.isArray(direct.scenes) || direct.title || direct.logline)) {
+		return direct;
+	}
+
+	const scenesIndex = cleaned.search(/"scenes"\s*:/);
+	const searchFrom = scenesIndex === -1 ? 0 : cleaned.indexOf("[", scenesIndex);
+	const objects = salvageObjects(
+		searchFrom > 0 ? cleaned.slice(searchFrom) : cleaned,
+	);
+	const sceneLike = objects.filter(
+		(o) => o.narration !== undefined || o.visual !== undefined || o.title !== undefined,
+	);
+
+	if (sceneLike.length > 0) {
+		return {
+			title: firstString({ text: cleaned, key: "title" }) || "Untitled video",
+			logline: firstString({ text: cleaned, key: "logline" }),
+			scenes: sceneLike,
+		};
+	}
+
+	if (direct) return direct;
+	throw new Error("The AI reply was not valid JSON");
 }
 
 /** Normalises whatever shape the model returned into our scene list. */
