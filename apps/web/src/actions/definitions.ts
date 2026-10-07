@@ -208,3 +208,16 @@ export function getDefaultShortcuts(): Map<
 
 	return shortcuts;
 }
+
+// Actions whose args are required (see TActionArgsMap) - everything else can be
+// invoked with no arguments, which is what TActionWithOptionalArgs expresses.
+const ACTIONS_REQUIRING_ARGS: ReadonlySet<string> = new Set([
+	"remove-media-asset",
+	"remove-media-assets",
+]);
+
+export function isActionWithOptionalArgs(
+	value: string,
+): value is TActionWithOptionalArgs {
+	return value in ACTIONS && !ACTIONS_REQUIRING_ARGS.has(value);
+}
