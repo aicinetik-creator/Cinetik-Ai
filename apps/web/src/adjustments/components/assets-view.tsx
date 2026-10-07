@@ -34,9 +34,13 @@ function firstNumberParam({
 export function AdjustmentsView() {
 	const editor = useEditor();
 	const { selectedElements } = useElementSelection();
-	const resolved = useEditor((instance) =>
-		instance.timeline.getElementsWithTracks({ elements: selectedElements }),
-	);
+	// Re-render when the scene changes (adding/removing effects edits the scene),
+	// then derive in render. Deriving inside the store selector would return a new
+	// array on every call and spin React into an infinite update loop.
+	useEditor((instance) => instance.scenes.getActiveSceneOrNull());
+	const resolved = editor.timeline.getElementsWithTracks({
+		elements: selectedElements,
+	});
 
 	const addAdjustment = ({ type }: { type: string }) => {
 		for (const { track, element } of resolved) {
