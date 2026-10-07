@@ -1,6 +1,5 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import {
 	ResizablePanelGroup,
 	ResizablePanel,
@@ -36,8 +35,7 @@ import {
 } from "@/timeline/bookmarks/index";
 
 export default function Editor() {
-	const params = useParams();
-	const projectId = params.project_id as string;
+	const [projectId] = useState(readProjectIdFromUrl);
 
 	return (
 		<MobileGate>
@@ -206,4 +204,16 @@ function EditorLayout() {
 			</ResizablePanel>
 		</ResizablePanelGroup>
 	);
+}
+
+/**
+ * Static export has no dynamic route params, so the project id is read from the
+ * URL on the client: /editor/<id> (rewritten to /editor) or /editor?id=<id>.
+ */
+function readProjectIdFromUrl(): string {
+	if (typeof window === "undefined") return "";
+	const fromQuery = new URLSearchParams(window.location.search).get("id");
+	if (fromQuery) return fromQuery;
+	const segments = window.location.pathname.split("/").filter(Boolean);
+	return segments[0] === "editor" ? (segments[1] ?? "") : "";
 }

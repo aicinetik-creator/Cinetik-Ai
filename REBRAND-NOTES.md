@@ -134,3 +134,25 @@ Cause: the repo shipped `install-strategy="nested"` and `node-linker=isolated` i
 location. Removed both settings so npm uses its default hoisted layout; `legacy-peer-deps`
 stays on. If you have an existing checkout, delete `node_modules` (root and `apps/web`) and
 reinstall before building.
+
+## Static build (this version)
+
+The app is now built as a **static export** (`next.config.ts` -> `output: "export"`,
+images unoptimized). Netlify therefore only runs the build and serves the files in
+`out/` - no Next.js server and no Netlify serverless runtime are involved.
+
+What changed:
+
+- Removed the server-only API routes (`src/app/api/**`) and the modules only they
+  used (`src/auth/**`, `src/db/**`, `src/feedback/index.ts`, `src/feedback/queries.ts`).
+  These were the code paths that failed the build (better-auth -> drizzle adapter).
+- The editor route moved from `/editor/[project_id]` to a static `/editor` page that
+  reads the project id from the URL; `netlify.toml` rewrites `/editor/*` -> `/editor`.
+- The root page redirects to `/projects` on the client (a static export cannot issue
+  a server redirect), and `netlify.toml` also rewrites `/` -> `/projects`.
+- `src/env/web.ts`: server variables are optional now, so a missing value cannot fail
+  the build.
+
+Known trade-offs: the feedback form and the sound-effects search posted to the removed
+API routes, so those two panel actions no longer reach a server. Everything else -
+importing media, the timeline, effects, and export - runs entirely in the browser.
