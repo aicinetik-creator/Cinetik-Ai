@@ -85,3 +85,10 @@ text-to-speech service), and a scene is a still frame rather than a moving AI cl
   codebase carries pre-existing type errors; `npx tsc --noEmit` still reports them.
 - The feedback form posts to an API route that was removed with the server, so it no
   longer reaches a backend.
+
+## Copy & branding
+
+- Landing footer tagline: **Cinetik AI - India's AI Creator platform**.
+- First-run editor dialog now says **"This is pre Alpha"** (was "super early beta")
+  and **"A lot of features are still getting built"** (was "still missing").
+- The dead upstream `opencut.app/roadmap` link was replaced with `cinetik.in`.
