@@ -10,10 +10,6 @@ const nextConfig: NextConfig = {
 	// Static export: the editor runs entirely in the browser, so it needs no
 	// server. This also removes the Next.js runtime requirement on the host.
 	output: "export",
-	// Netlify's Next.js runtime is an OpenNext adapter and packages the app itself.
-	// Combining an adapter with `output: "standalone"` crashes the Next 16 build
-	// (missing .next/next-server.js.nft.json), so it stays off unless explicitly asked for.
-	output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
 	images: {
 		unoptimized: true,
 		remotePatterns: [
