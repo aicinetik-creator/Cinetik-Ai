@@ -10,6 +10,18 @@ import {
 	sepiaEffectDefinition,
 } from "./color";
 import {
+	chromaticEffectDefinition,
+	duotoneEffectDefinition,
+	filmGrainEffectDefinition,
+	glowEffectDefinition,
+	mirrorEffectDefinition,
+	posterizeEffectDefinition,
+	scanlinesEffectDefinition,
+	sharpenEffectDefinition,
+	tintEffectDefinition,
+	vhsEffectDefinition,
+} from "./cinematic";
+import {
 	cinematicEffectDefinition,
 	fadeEffectDefinition,
 	pixelateEffectDefinition,
@@ -31,6 +43,16 @@ const defaultEffects = [
 	warmthEffectDefinition,
 	fadeEffectDefinition,
 	cinematicEffectDefinition,
+	filmGrainEffectDefinition,
+	duotoneEffectDefinition,
+	glowEffectDefinition,
+	chromaticEffectDefinition,
+	mirrorEffectDefinition,
+	posterizeEffectDefinition,
+	sharpenEffectDefinition,
+	scanlinesEffectDefinition,
+	tintEffectDefinition,
+	vhsEffectDefinition,
 ];
 
 export function registerDefaultEffects(): void {
