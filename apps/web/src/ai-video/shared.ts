@@ -286,9 +286,10 @@ export function friendlyProviderError({
 	status: number;
 	body: string;
 }): string {
+	const p = provider.toLowerCase();
 	if (status === 402) {
-		return provider === "openrouter"
-			? "OpenRouter has no credits left, so image models cannot run. Add a little credit, or switch to Google Gemini (free tier) in the AI provider settings."
+		return p === "openrouter"
+			? "OpenRouter has no credit for image models, so frames fell back to placeholders. Add a little credit, or switch to Google Gemini (free tier) in the AI provider settings to get real frames."
 			: "This Google account has no quota left for this model.";
 	}
 	if (status === 401 || status === 403) {

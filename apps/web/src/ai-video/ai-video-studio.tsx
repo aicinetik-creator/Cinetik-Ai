@@ -799,6 +799,7 @@ function ScenesStep({
 	if (!script) return null;
 	const ready = script.scenes.filter((scene) => scene.imageUrl).length;
 	const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+	const firstWarning = script.scenes.find((scene) => scene.imageWarning)?.imageWarning;
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -825,6 +826,12 @@ function ScenesStep({
 					<p className="text-muted-foreground text-xs">
 						Generating frames… {progress.done}/{progress.total}
 					</p>
+				</div>
+			)}
+
+			{!isImaging && firstWarning && (
+				<div className="border-caution/40 bg-caution/10 text-caution rounded-lg border p-3 text-xs">
+					{firstWarning}
 				</div>
 			)}
 
