@@ -136,7 +136,7 @@ function PresetCard({
 					{preset.name}
 				</span>
 			</span>
-			<span className="text-muted-foreground w-full truncate text-[0.65rem]">
+			<span className="text-muted-foreground line-clamp-2 w-full text-[0.65rem] leading-tight">
 				{preset.description}
 			</span>
 		</button>
