@@ -15,8 +15,9 @@ import { Onboarding } from "@/components/editor/onboarding";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { usePanelStore } from "@/editor/panel-store";
 import { usePasteMedia } from "@/media/use-paste-media";
-import { MobileGate } from "@/components/editor/mobile-gate";
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileEditorPanels } from "@/components/editor/mobile-editor-panels";
 import { useEditor } from "@/editor/use-editor";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -38,20 +39,19 @@ export default function Editor() {
 	const [projectId] = useState(readProjectIdFromUrl);
 
 	return (
-		<MobileGate>
-			<EditorProvider projectId={projectId}>
-				<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
-					<DegradedRendererBanner />
-					<EditorHeader />
-					<div className="min-h-0 min-w-0 flex-1">
-						<EditorLayout />
-					</div>
-					<Onboarding />
-					<MigrationDialog />
-					<ChangelogNotification />
+		<EditorProvider projectId={projectId}>
+			{/* dvh keeps the layout correct under mobile browser chrome */}
+			<div className="bg-background flex h-[100dvh] w-full flex-col overflow-hidden">
+				<DegradedRendererBanner />
+				<EditorHeader />
+				<div className="min-h-0 min-w-0 flex-1">
+					<EditorLayout />
 				</div>
-			</EditorProvider>
-		</MobileGate>
+				<Onboarding />
+				<MigrationDialog />
+				<ChangelogNotification />
+			</div>
+		</EditorProvider>
 	);
 }
 
@@ -122,6 +122,26 @@ function EditorLayout() {
 			),
 		[overlaySource.definitions, overlays],
 	);
+
+	const isMobile = useIsMobile();
+
+	if (isMobile) {
+		return (
+			<div className="flex size-full min-h-0 flex-col">
+				<div className="min-h-0 flex-1">
+					<PreviewPanel
+						overlayControls={overlayControls}
+						overlayInstances={overlaySource.instances}
+						onOverlayVisibilityChange={setOverlayVisibility}
+					/>
+				</div>
+				<div className="h-[42%] min-h-0 border-t">
+					<Timeline />
+				</div>
+				<MobileEditorPanels />
+			</div>
+		);
+	}
 
 	return (
 		<ResizablePanelGroup

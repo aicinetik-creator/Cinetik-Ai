@@ -35,9 +35,13 @@ export function EditorHeader() {
 				<EditableProjectName />
 			</div>
 			<nav className="flex items-center gap-2">
-				<FeedbackPopover />
+				<span className="hidden md:block">
+					<FeedbackPopover />
+				</span>
 				<ExportButton />
-				<ThemeToggle />
+				<span className="hidden md:block">
+					<ThemeToggle />
+				</span>
 			</nav>
 		</header>
 	);
