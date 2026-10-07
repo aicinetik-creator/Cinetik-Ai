@@ -30,7 +30,7 @@ export function Onboarding() {
 			case 0:
 				return "Welcome to Cinetik Editor! 🎉";
 			case 1:
-				return "⚠️ This is a super early beta!";
+				return "⚠️ This is pre Alpha";
 			case 2:
 				return "🦋 Have fun testing!";
 			default:
@@ -56,8 +56,8 @@ export function Onboarding() {
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
 							<Description description="There's still a ton of things to do to make this editor amazing." />
-							<Description description="A lot of features are still missing. We're working hard to build them out!" />
-							<Description description="If you're curious, check out our roadmap [here](https://opencut.app/roadmap)" />
+							<Description description="A lot of features are still getting built. We're working hard on them!" />
+							<Description description="Curious what's coming? Follow along at [cinetik.in](https://cinetik.in)" />
 						</div>
 						<NextButton onClick={handleNext}>Next</NextButton>
 					</div>
