@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="32" viewBox="0 0 128 32" fill="none">
+  <path d="M26 16a10 10 0 1 1-6.8-9.47" stroke="white" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M13.5 11.6 21 16l-7.5 4.4z" fill="white"/>
+  <text x="40" y="21.5" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="0.5" fill="white">Cinetik</text>
+</svg>
