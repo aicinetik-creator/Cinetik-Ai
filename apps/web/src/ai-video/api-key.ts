@@ -16,14 +16,13 @@ export const DEFAULT_GEMINI_TEXT_MODEL = "gemini-2.5-flash";
 export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
 
 /**
- * Verified working on a free OpenRouter account (cost 0, good Indic output).
- * The `:free` suffix means it never bills.
+ * Default script model. Paid, but a full script costs a fraction of a cent and the
+ * quality matters for demos. The free models below stay available as a fallback.
  */
-export const DEFAULT_OPENROUTER_TEXT_MODEL =
-	"nvidia/nemotron-3-super-120b-a12b:free";
+export const DEFAULT_OPENROUTER_TEXT_MODEL = "google/gemini-2.5-flash";
 export const DEFAULT_OPENROUTER_IMAGE_MODEL = "google/gemini-2.5-flash-image";
 
-/** A few other free text models, in case one is rate-limited. */
+/** Free text models, offered in the picker as a zero-cost fallback. */
 export const OPENROUTER_FREE_TEXT_MODELS = [
 	"nvidia/nemotron-3-super-120b-a12b:free",
 	"google/gemma-4-26b-a4b-it:free",

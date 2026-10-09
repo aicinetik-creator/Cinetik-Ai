@@ -394,9 +394,14 @@ export function friendlyProviderError({
 }): string {
 	const p = provider.toLowerCase();
 	if (status === 402) {
-		return p === "openrouter"
-			? "OpenRouter has no credit for image models, so frames fell back to placeholders. Add a little credit, or switch to Google Gemini (free tier) in the AI provider settings to get real frames."
-			: "This Google account has no quota left for this model.";
+		const detail = body.replace(/\s+/g, " ");
+		if (p === "openrouter") {
+			if (/\$1\.00|at least/i.test(detail)) {
+				return "OpenRouter needs at least $1.00 of balance for image output, so scene frames fell back to placeholders. Add $1 at openrouter.ai/credits, or switch the provider to Google Gemini (free tier) to get real frames at no cost.";
+			}
+			return "OpenRouter refused this request (402). Add credit, or switch the provider to Google Gemini (free tier).";
+		}
+		return "This Google account has no quota left for this model.";
 	}
 	if (status === 401 || status === 403) {
 		return "That API key was rejected. Check it in the AI provider settings.";
