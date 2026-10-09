@@ -46,13 +46,14 @@ export const AI_PROVIDERS: AiProviderInfo[] = [
 	{
 		id: "gemini",
 		label: "Google Gemini",
-		keyPlaceholder: "AIza...",
-		keyHelp: "Google AI Studio key. Has a free tier that also covers image generation.",
+		keyPlaceholder: "AQ....",
+		keyHelp:
+			"Google AI Studio key (starts with AQ.). Free for scripts; image frames need billing enabled.",
 		freeTextModels: [],
-		textModelHint: "gemini-2.5-flash",
+		textModelHint: "gemini-3.8-flash",
 		imageModelHint: "gemini-2.5-flash-image",
 		imageNote:
-			"Gemini's free tier includes image generation, so scene frames can be real at no cost.",
+			"Google's free tier does not include image generation (its quota is 0), so scene frames need billing enabled on the Google Cloud project. Scripts are free.",
 	},
 ];
 

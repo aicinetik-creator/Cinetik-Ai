@@ -407,7 +407,12 @@ export function friendlyProviderError({
 		return "That API key was rejected. Check it in the AI provider settings.";
 	}
 	if (status === 429) {
-		return "Rate limited - free models allow only a few requests per minute. Wait a moment and try again.";
+		if (/limit:\s*0|free_tier/i.test(body)) {
+			return p === "gemini"
+				? "This Google key has no free quota for this model. Image generation needs billing enabled on the Google Cloud project - scripts still work on the free tier."
+				: "This key has no free quota for this model. Add credit to enable it.";
+		}
+		return "Rate limited - wait a moment and try again.";
 	}
 	const detail = body.replace(/\s+/g, " ").slice(0, 160);
 	return `${provider} returned ${status}${detail ? `: ${detail}` : ""}`;

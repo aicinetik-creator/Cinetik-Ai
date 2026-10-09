@@ -12,7 +12,7 @@ const OPENROUTER_IMAGE_MODEL = "cinetik.ai-video.openrouter-image-model";
 
 export const DEFAULT_PROVIDER: AiProviderId = "openrouter";
 
-export const DEFAULT_GEMINI_TEXT_MODEL = "gemini-2.5-flash";
+export const DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.8-flash";
 export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
 
 /**
