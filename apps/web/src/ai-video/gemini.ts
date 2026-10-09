@@ -102,25 +102,30 @@ export async function generateScriptGemini({
 	);
 
 	let lastError: unknown = null;
-	for (const model of candidates) {
-		try {
-			const data = await callGemini({
-				model,
-				apiKey,
-				body: {
-					contents: [{ parts: [{ text: scriptPrompt(brief) }] }],
-					generationConfig: {
-						temperature: 0.85,
-						responseMimeType: "application/json",
+	// Google capacity errors are transient, so sweep the models, pause, and sweep
+	// again - up to eight attempts before ever conceding to the sample script.
+	for (let round = 0; round < 2; round++) {
+		for (const model of candidates) {
+			try {
+				const data = await callGemini({
+					model,
+					apiKey,
+					body: {
+						contents: [{ parts: [{ text: scriptPrompt(brief) }] }],
+						generationConfig: {
+							temperature: 0.85,
+							responseMimeType: "application/json",
+						},
 					},
-				},
-			});
-			const script = toScript(parseScriptJson(extractText(data)));
-			if (script.scenes.length === 0) throw new Error("Model returned no scenes");
-			return { script, source: "ai" };
-		} catch (error) {
-			lastError = error;
+				});
+				const script = toScript(parseScriptJson(extractText(data)));
+				if (script.scenes.length === 0) throw new Error("Model returned no scenes");
+				return { script, source: "ai" };
+			} catch (error) {
+				lastError = error;
+			}
 		}
+		await new Promise((resolve) => setTimeout(resolve, 1500));
 	}
 	return {
 		script: demoScript({ brief }),
