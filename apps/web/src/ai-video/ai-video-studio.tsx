@@ -45,6 +45,7 @@ import {
 	type AiProviderId,
 	generateSceneImage,
 	generateScript,
+	generateVoiceover,
 	providerInfo,
 } from "./providers";
 import {
@@ -65,23 +66,6 @@ import type {
 
 const BRAND_GRADIENT = "linear-gradient(90deg,#00D2FF 0%,#B026FF 100%)";
 const BRAND_TEXT = "bg-gradient-to-r from-[#00D2FF] to-[#B026FF] bg-clip-text text-transparent";
-
-const TTS_CODES: Record<string, string> = {
-	"English (India)": "en-IN",
-	Hindi: "hi-IN",
-	Tamil: "ta-IN",
-	Telugu: "te-IN",
-	Bengali: "bn-IN",
-	Marathi: "mr-IN",
-	Kannada: "kn-IN",
-	Malayalam: "ml-IN",
-	Gujarati: "gu-IN",
-	Punjabi: "pa-IN",
-	Odia: "or-IN",
-	Assamese: "as-IN",
-	Urdu: "ur-IN",
-	Nepali: "ne-NP",
-};
 
 export function AiVideoStudio() {
 	const isOpen = useAiVideoStore((state) => state.isOpen);
@@ -104,6 +88,7 @@ export function AiVideoStudio() {
 
 	const [isBuilding, setIsBuilding] = useState(false);
 	const [builtCount, setBuiltCount] = useState<number | null>(null);
+	const [voiceovers, setVoiceovers] = useState<Record<string, Blob>>({});
 
 	const [keyOpen, setKeyOpen] = useState(false);
 	const [configVersion, setConfigVersion] = useState(0);
@@ -255,11 +240,13 @@ export function AiVideoStudio() {
 		}
 		setIsBuilding(true);
 		try {
-			const { addedScenes, skipped } = await buildTimelineFromScenes({
-				editor,
-				projectId: active.metadata.id,
-				scenes: script.scenes,
-			});
+			const { addedScenes, skipped, addedVoiceovers } =
+				await buildTimelineFromScenes({
+					editor,
+					projectId: active.metadata.id,
+					scenes: script.scenes,
+					voiceovers,
+				});
 			setBuiltCount(addedScenes);
 			setStep(4);
 			if (addedScenes === 0) {
@@ -268,7 +255,15 @@ export function AiVideoStudio() {
 				});
 			} else {
 				toast.success(`${addedScenes} scene${addedScenes === 1 ? "" : "s"} added to the timeline`, {
-					description: skipped > 0 ? `${skipped} scene(s) skipped.` : undefined,
+					description:
+						[
+							skipped > 0 ? `${skipped} scene(s) skipped.` : "",
+							addedVoiceovers > 0
+								? `${addedVoiceovers} voiceover clip(s) added.`
+								: "",
+						]
+							.filter(Boolean)
+							.join(" ") || undefined,
 				});
 			}
 		} finally {
@@ -374,7 +369,11 @@ export function AiVideoStudio() {
 						)}
 
 						{step === 3 && (
-							<AudioStep script={script} language={language} />
+							<AudioStep
+								script={script}
+								voiceovers={voiceovers}
+								onVoiceoversChange={setVoiceovers}
+							/>
 						)}
 
 						{step === 4 && <TimelineStep script={script} builtCount={builtCount} />}
@@ -890,58 +889,94 @@ function ScenesStep({
 	);
 }
 
-function AudioStep({ script, language }: { script: AiScript | null; language: string }) {
-	const [speakingId, setSpeakingId] = useState<string | null>(null);
+function AudioStep({
+	script,
+	voiceovers,
+	onVoiceoversChange,
+}: {
+	script: AiScript | null;
+	voiceovers: Record<string, Blob>;
+	onVoiceoversChange: (next: Record<string, Blob>) => void;
+}) {
+	const [busyId, setBusyId] = useState<string | null>(null);
+	const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+	const [urls, setUrls] = useState<Record<string, string>>({});
+	const urlsRef = useRef<Record<string, string>>({});
 
 	useEffect(() => {
 		return () => {
-			if (typeof window !== "undefined" && "speechSynthesis" in window) {
-				window.speechSynthesis.cancel();
-			}
+			for (const url of Object.values(urlsRef.current)) URL.revokeObjectURL(url);
 		};
 	}, []);
 
 	if (!script) return null;
 
-	const speak = (scene: AiScene) => {
-		if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-			toast.error("Your browser can't speak this text");
-			return;
-		}
-		window.speechSynthesis.cancel();
-		if (speakingId === scene.id) {
-			setSpeakingId(null);
-			return;
-		}
-		const utterance = new SpeechSynthesisUtterance(scene.narration || scene.title);
-		utterance.lang = TTS_CODES[language] ?? "en-IN";
-		utterance.onend = () => setSpeakingId(null);
-		setSpeakingId(scene.id);
-		window.speechSynthesis.speak(utterance);
+	const makeUrl = (sceneId: string, blob: Blob) => {
+		const previous = urlsRef.current[sceneId];
+		if (previous) URL.revokeObjectURL(previous);
+		urlsRef.current = { ...urlsRef.current, [sceneId]: URL.createObjectURL(blob) };
+		setUrls({ ...urlsRef.current });
 	};
 
-	const speakAll = () => {
-		if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-		window.speechSynthesis.cancel();
-		const joined = script.scenes
-			.map((scene) => scene.narration)
-			.filter(Boolean)
-			.join(". ");
-		if (!joined) return;
-		const utterance = new SpeechSynthesisUtterance(joined);
-		utterance.lang = TTS_CODES[language] ?? "en-IN";
-		setSpeakingId("all");
-		utterance.onend = () => setSpeakingId(null);
-		window.speechSynthesis.speak(utterance);
+	const generateOne = async (scene: AiScene) => {
+		const text = scene.narration || scene.title;
+		if (!text) return;
+		setBusyId(scene.id);
+		try {
+			const { blob, warning } = await generateVoiceover({
+				text,
+				config: aiVideoKeys.getConfig(),
+			});
+			if (!blob) {
+				toast.error(warning ?? "Could not generate the voiceover");
+				return;
+			}
+			makeUrl(scene.id, blob);
+			onVoiceoversChange({ ...voiceovers, [scene.id]: blob });
+		} finally {
+			setBusyId(null);
+		}
 	};
+
+	const generateAll = async () => {
+		setIsGeneratingAll(true);
+		const next: Record<string, Blob> = { ...voiceovers };
+		let ok = 0;
+		let failed = 0;
+		let firstWarning = "";
+		for (const scene of script.scenes) {
+			const text = scene.narration || scene.title;
+			if (!text) continue;
+			setBusyId(scene.id);
+			const { blob, warning } = await generateVoiceover({
+				text,
+				config: aiVideoKeys.getConfig(),
+			});
+			if (blob) {
+				next[scene.id] = blob;
+				makeUrl(scene.id, blob);
+				ok++;
+			} else {
+				failed++;
+				if (!firstWarning && warning) firstWarning = warning;
+			}
+		}
+		setBusyId(null);
+		setIsGeneratingAll(false);
+		onVoiceoversChange(next);
+		if (ok) toast.success(`Real voiceover ready for ${ok} scene${ok === 1 ? "" : "s"}`);
+		if (failed) toast.error(firstWarning || `${failed} scene(s) could not be voiced`);
+	};
+
+	const generated = script.scenes.filter((scene) => voiceovers[scene.id]).length;
 
 	return (
 		<div className="flex flex-col gap-5">
 			<div>
 				<h2 className="text-lg font-semibold">Audio &amp; voiceover</h2>
 				<p className="text-muted-foreground mt-1 text-sm">
-					Preview the voiceover with your browser&apos;s built-in voice, and pick a music bed
-					from the Sounds library.
+					Generate the narration as real audio with Google TTS. It is added to the
+					timeline as an audio track you can edit.
 				</p>
 			</div>
 
@@ -949,35 +984,58 @@ function AudioStep({ script, language }: { script: AiScript | null; language: st
 				<div className="flex items-center justify-between gap-3">
 					<div className="flex items-center gap-2">
 						<Volume2 className="size-4" />
-						<span className="text-sm font-medium">Voiceover preview</span>
+						<span className="text-sm font-medium">
+							Voiceover{generated ? ` - ${generated}/${script.scenes.length} ready` : ""}
+						</span>
 					</div>
-					<Button variant="outline" size="sm" onClick={speakAll}>
-						<Play className="size-3.5" />
-						Play all
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={isGeneratingAll || busyId !== null}
+						onClick={generateAll}
+					>
+						{isGeneratingAll ? (
+							<Square className="size-3.5" />
+						) : (
+							<Volume2 className="size-3.5" />
+						)}
+						{isGeneratingAll ? "Generating..." : "Generate voiceover"}
 					</Button>
 				</div>
-				<div className="mt-3 flex flex-col gap-2">
+
+				<div className="mt-3 flex flex-col gap-3">
 					{script.scenes.map((scene) => (
-						<div
-							key={scene.id}
-							className="flex items-center justify-between gap-3 border-t pt-2 first:border-t-0 first:pt-0"
-						>
-							<p className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
-								{scene.narration || scene.title}
-							</p>
-							<Button variant="ghost" size="sm" onClick={() => speak(scene)}>
-								{speakingId === scene.id ? (
-									<Square className="size-3.5" />
-								) : (
-									<Play className="size-3.5" />
-								)}
-							</Button>
+						<div key={scene.id} className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0">
+							<div className="flex items-center justify-between gap-3">
+								<p className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+									{scene.narration || scene.title}
+								</p>
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={busyId !== null || isGeneratingAll}
+									onClick={() => generateOne(scene)}
+								>
+									{busyId === scene.id ? (
+										<span className="text-xs">...</span>
+									) : voiceovers[scene.id] ? (
+										<span className="text-xs">Redo</span>
+									) : (
+										<span className="text-xs">Generate</span>
+									)}
+								</Button>
+							</div>
+							{urls[scene.id] ? (
+								<audio controls src={urls[scene.id]} className="h-8 w-full" />
+							) : null}
 						</div>
 					))}
 				</div>
+
 				<p className="text-muted-foreground mt-3 text-[11px]">
-					This preview uses your device&apos;s voice. To bake a voiceover into the export, add
-					it from the Sounds panel or import an audio file.
+					This is real generated speech, not a device preview. It needs billing
+					enabled on your Google Cloud project. Scenes with audio are placed on an
+					audio track when you build the timeline.
 				</p>
 			</div>
 
@@ -986,19 +1044,8 @@ function AudioStep({ script, language }: { script: AiScript | null; language: st
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-medium">Background music</p>
 					<p className="text-muted-foreground mt-1 text-xs">
-						Open the Sounds tab in the editor to search and drop a music track onto the
-						timeline.
-					</p>
-				</div>
-			</div>
-
-			<div className="border-border flex items-start gap-3 rounded-lg border p-4">
-				<Languages className="mt-0.5 size-4" />
-				<div className="min-w-0 flex-1">
-					<p className="text-sm font-medium">Narration language: {language}</p>
-					<p className="text-muted-foreground mt-1 text-xs">
-						The script was written in {language}. Change the language on the Brief step to
-						regenerate it in another.
+						Add a music bed from the Sounds panel once your scenes are on the
+						timeline. Music mixes on its own audio track.
 					</p>
 				</div>
 			</div>
