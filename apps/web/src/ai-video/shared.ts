@@ -407,12 +407,23 @@ export function friendlyProviderError({
 		return "That API key was rejected. Check it in the AI provider settings.";
 	}
 	if (status === 429) {
+		const limitMatch = /limit:\s*(\d+)/i.exec(body);
+		const limit = limitMatch ? Number(limitMatch[1]) : null;
+		if (p === "gemini" && limit === 0) {
+			return "Google's free tier has no quota at all for this model, so it needs billing enabled on the Google Cloud project. Scripts still work on the free tier.";
+		}
+		if (p === "gemini" && limit !== null && limit > 0) {
+			return `Google's free tier allows ${limit} of these per day and they are used up. It resets on its own tomorrow, or enable billing on the Google Cloud project to lift the cap.`;
+		}
 		if (/limit:\s*0|free_tier/i.test(body)) {
 			return p === "gemini"
-				? "This Google key has no free quota for this model. Image generation needs billing enabled on the Google Cloud project - scripts still work on the free tier."
+				? "This Google key has no free quota for this model. Enable billing on the Google Cloud project to use it."
 				: "This key has no free quota for this model. Add credit to enable it.";
 		}
 		return "Rate limited - wait a moment and try again.";
+	}
+	if (status === 503) {
+		return "Google is reporting high demand for this model right now. Trying another model.";
 	}
 	const detail = body.replace(/\s+/g, " ").slice(0, 160);
 	return `${provider} returned ${status}${detail ? `: ${detail}` : ""}`;
