@@ -89,13 +89,23 @@ export async function generateScriptGemini({
 		};
 	}
 
-	// Two attempts: a transient provider hiccup should not drop the user to the
-	// sample script during a demo.
+	// Google returns transient 503s ("high demand") fairly often, and a demo must
+	// not fall back to the sample script because of one. Try the chosen model, then
+	// a couple of current alternates.
+	const candidates = [
+		textModel || DEFAULT_GEMINI_TEXT_MODEL,
+		"gemini-3.7-flash",
+		"gemini-3.5-flash",
+		"gemini-flash-latest",
+	].filter(
+		(model, index, all) => Boolean(model) && all.indexOf(model) === index,
+	);
+
 	let lastError: unknown = null;
-	for (let attempt = 0; attempt < 2; attempt++) {
+	for (const model of candidates) {
 		try {
 			const data = await callGemini({
-				model: textModel || DEFAULT_GEMINI_TEXT_MODEL,
+				model,
 				apiKey,
 				body: {
 					contents: [{ parts: [{ text: scriptPrompt(brief) }] }],
