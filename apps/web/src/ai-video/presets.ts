@@ -49,6 +49,7 @@ export const LANGUAGES = [
 	"Nepali",
 	"Konkani",
 	"Maithili",
+	"Bhojpuri",
 	"Sanskrit",
 	"Kashmiri",
 	"Sindhi",
