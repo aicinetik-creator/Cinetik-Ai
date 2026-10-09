@@ -89,28 +89,34 @@ export async function generateScriptGemini({
 		};
 	}
 
-	try {
-		const data = await callGemini({
-			model: textModel || DEFAULT_GEMINI_TEXT_MODEL,
-			apiKey,
-			body: {
-				contents: [{ parts: [{ text: scriptPrompt(brief) }] }],
-				generationConfig: {
-					temperature: 0.85,
-					responseMimeType: "application/json",
+	// Two attempts: a transient provider hiccup should not drop the user to the
+	// sample script during a demo.
+	let lastError: unknown = null;
+	for (let attempt = 0; attempt < 2; attempt++) {
+		try {
+			const data = await callGemini({
+				model: textModel || DEFAULT_GEMINI_TEXT_MODEL,
+				apiKey,
+				body: {
+					contents: [{ parts: [{ text: scriptPrompt(brief) }] }],
+					generationConfig: {
+						temperature: 0.85,
+						responseMimeType: "application/json",
+					},
 				},
-			},
-		});
-		const script = toScript(parseScriptJson(extractText(data)));
-		if (script.scenes.length === 0) throw new Error("Model returned no scenes");
-		return { script, source: "ai" };
-	} catch (error) {
-		return {
-			script: demoScript({ brief }),
-			source: "demo",
-			warning: `AI request failed (${error instanceof Error ? error.message : "unknown error"}). Showing a sample script.`,
-		};
+			});
+			const script = toScript(parseScriptJson(extractText(data)));
+			if (script.scenes.length === 0) throw new Error("Model returned no scenes");
+			return { script, source: "ai" };
+		} catch (error) {
+			lastError = error;
+		}
 	}
+	return {
+		script: demoScript({ brief }),
+		source: "demo",
+		warning: `AI request failed (${lastError instanceof Error ? lastError.message : "unknown error"}). Showing a sample script - press Regenerate to try again.`,
+	};
 }
 
 export async function generateSceneImageGemini({

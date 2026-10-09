@@ -22,12 +22,14 @@ async function chat({
 	model,
 	content,
 	modalities,
+	maxTokens,
 	timeoutMs = 120000,
 }: {
 	apiKey: string;
 	model: string;
 	content: ChatContent;
 	modalities?: string[];
+	maxTokens?: number;
 	timeoutMs?: number;
 }): Promise<Record<string, unknown>> {
 	const controller = new AbortController();
@@ -46,6 +48,7 @@ async function chat({
 			body: JSON.stringify({
 				model,
 				messages: [{ role: "user", content }],
+				...(maxTokens ? { max_tokens: maxTokens } : {}),
 				...(modalities ? { modalities } : {}),
 			}),
 			signal: controller.signal,
@@ -98,24 +101,31 @@ export async function generateScriptOpenRouter({
 		};
 	}
 
-	try {
-		const data = await chat({
-			apiKey,
-			model: textModel || DEFAULT_OPENROUTER_TEXT_MODEL,
-			content: scriptPrompt(brief),
-		});
-		const message = messageOf(data);
-		const text = typeof message.content === "string" ? message.content : "";
-		const script = toScript(parseScriptJson(text));
-		if (script.scenes.length === 0) throw new Error("Model returned no scenes");
-		return { script, source: "ai" };
-	} catch (error) {
-		return {
-			script: demoScript({ brief }),
-			source: "demo",
-			warning: `AI request failed (${error instanceof Error ? error.message : "unknown error"}). Showing a sample script.`,
-		};
+	// Two attempts: a transient provider hiccup should not drop the user to the
+	// sample script during a demo.
+	let lastError: unknown = null;
+	for (let attempt = 0; attempt < 2; attempt++) {
+		try {
+			const data = await chat({
+				apiKey,
+				model: textModel || DEFAULT_OPENROUTER_TEXT_MODEL,
+				content: scriptPrompt(brief),
+				maxTokens: 3000,
+			});
+			const message = messageOf(data);
+			const text = typeof message.content === "string" ? message.content : "";
+			const script = toScript(parseScriptJson(text));
+			if (script.scenes.length === 0) throw new Error("Model returned no scenes");
+			return { script, source: "ai" };
+		} catch (error) {
+			lastError = error;
+		}
 	}
+	return {
+		script: demoScript({ brief }),
+		source: "demo",
+		warning: `AI request failed (${lastError instanceof Error ? lastError.message : "unknown error"}). Showing a sample script - press Regenerate to try again.`,
+	};
 }
 
 export async function generateSceneImageOpenRouter({
